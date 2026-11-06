@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        scheduleAdhan(this)
         setContent {
             MaterialTheme {
                 var screen by remember { mutableStateOf("home") }
@@ -20,6 +21,7 @@ class MainActivity : ComponentActivity() {
                     "morning" -> AzkarScreen("أذكار الصباح", morningAzkar) { screen = "home" }
                     "evening" -> AzkarScreen("أذكار المساء", eveningAzkar) { screen = "home" }
                     "dua" -> AzkarScreen("أدعية مختارة", duaList) { screen = "home" }
+                    "prayer" -> PrayerScreen { screen = "home" }
                     else -> HomeScreen { screen = it }
                 }
             }
@@ -46,6 +48,10 @@ fun HomeScreen(onOpen: (String) -> Unit) {
         Spacer(Modifier.height(12.dp))
         Button(onClick = { onOpen("dua") }, modifier = Modifier.fillMaxWidth()) {
             Text("أدعية مختارة")
+        }
+        Spacer(Modifier.height(12.dp))
+        Button(onClick = { onOpen("prayer") }, modifier = Modifier.fillMaxWidth()) {
+            Text("مواقيت الصلاة")
         }
     }
 }
