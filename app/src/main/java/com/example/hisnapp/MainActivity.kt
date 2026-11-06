@@ -19,6 +19,7 @@ class MainActivity : ComponentActivity() {
                 when (screen) {
                     "morning" -> AzkarScreen("أذكار الصباح", morningAzkar) { screen = "home" }
                     "evening" -> AzkarScreen("أذكار المساء", eveningAzkar) { screen = "home" }
+                    "dua" -> AzkarScreen("أدعية مختارة", duaList) { screen = "home" }
                     else -> HomeScreen { screen = it }
                 }
             }
@@ -41,6 +42,10 @@ fun HomeScreen(onOpen: (String) -> Unit) {
         Spacer(Modifier.height(12.dp))
         Button(onClick = { onOpen("evening") }, modifier = Modifier.fillMaxWidth()) {
             Text("أذكار المساء")
+        }
+        Spacer(Modifier.height(12.dp))
+        Button(onClick = { onOpen("dua") }, modifier = Modifier.fillMaxWidth()) {
+            Text("أدعية مختارة")
         }
     }
 }
