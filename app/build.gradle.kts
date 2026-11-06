@@ -37,4 +37,5 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.navigation:navigation-compose:2.7.7")
+implementation("com.batoulapp.prayertime:prayer-time-calculator:1.0.1")
 }
