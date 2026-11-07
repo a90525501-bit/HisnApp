@@ -8,43 +8,44 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.batoulapps.adhan.CalculationMethod
-import com.batoulapps.adhan.Coordinates
-import com.batoulapps.adhan.PrayerTimes
-import com.batoulapps.adhan.data.DateComponents
 import java.util.Calendar
 import java.util.Date
+import java.util.TimeZone
+import kotlin.math.*
 
-data class City(val name: String, val lat: Double, val lon: Double, val method: String)
+data class City(
+    val name: String, val lat: Double, val lon: Double,
+    val fajr: Double, val isha: Double, val ishaMin: Int = 0
+)
 
 data class PrayerItem(val name: String, val time: Date)
 
 val cities = listOf(
-    City("مكة المكرمة", 21.4225, 39.8262, "UMM_AL_QURA"),
-    City("المدينة المنورة", 24.4686, 39.6142, "UMM_AL_QURA"),
-    City("الرياض", 24.7136, 46.6753, "UMM_AL_QURA"),
-    City("جدة", 21.5433, 39.1728, "UMM_AL_QURA"),
-    City("الدمام", 26.4207, 50.0888, "UMM_AL_QURA"),
-    City("صنعاء", 15.3694, 44.1910, "UMM_AL_QURA"),
-    City("القاهرة", 30.0444, 31.2357, "EGYPTIAN"),
-    City("الإسكندرية", 31.2001, 29.9187, "EGYPTIAN"),
-    City("الخرطوم", 15.5007, 32.5599, "EGYPTIAN"),
-    City("طرابلس", 32.8872, 13.1913, "EGYPTIAN"),
-    City("دبي", 25.2048, 55.2708, "DUBAI"),
-    City("أبوظبي", 24.4539, 54.3773, "DUBAI"),
-    City("الدوحة", 25.2854, 51.5310, "QATAR"),
-    City("الكويت", 29.3759, 47.9774, "KUWAIT"),
-    City("المنامة", 26.2285, 50.5860, "MUSLIM_WORLD_LEAGUE"),
-    City("مسقط", 23.5880, 58.3829, "MUSLIM_WORLD_LEAGUE"),
-    City("عمّان", 31.9454, 35.9284, "MUSLIM_WORLD_LEAGUE"),
-    City("القدس", 31.7683, 35.2137, "MUSLIM_WORLD_LEAGUE"),
-    City("دمشق", 33.5138, 36.2765, "MUSLIM_WORLD_LEAGUE"),
-    City("بيروت", 33.8938, 35.5018, "MUSLIM_WORLD_LEAGUE"),
-    City("بغداد", 33.3152, 44.3661, "MUSLIM_WORLD_LEAGUE"),
-    City("تونس", 36.8065, 10.1815, "MUSLIM_WORLD_LEAGUE"),
-    City("الجزائر", 36.7538, 3.0588, "MUSLIM_WORLD_LEAGUE"),
-    City("الرباط", 34.0209, -6.8416, "MUSLIM_WORLD_LEAGUE"),
-    City("إسطنبول", 41.0082, 28.9784, "TURKEY")
+    City("مكة المكرمة", 21.4225, 39.8262, 18.5, 0.0, 90),
+    City("المدينة المنورة", 24.4686, 39.6142, 18.5, 0.0, 90),
+    City("الرياض", 24.7136, 46.6753, 18.5, 0.0, 90),
+    City("جدة", 21.5433, 39.1728, 18.5, 0.0, 90),
+    City("الدمام", 26.4207, 50.0888, 18.5, 0.0, 90),
+    City("صنعاء", 15.3694, 44.1910, 18.5, 0.0, 90),
+    City("القاهرة", 30.0444, 31.2357, 19.5, 17.5),
+    City("الإسكندرية", 31.2001, 29.9187, 19.5, 17.5),
+    City("الخرطوم", 15.5007, 32.5599, 19.5, 17.5),
+    City("طرابلس", 32.8872, 13.1913, 19.5, 17.5),
+    City("دبي", 25.2048, 55.2708, 18.2, 18.2),
+    City("أبوظبي", 24.4539, 54.3773, 18.2, 18.2),
+    City("الدوحة", 25.2854, 51.5310, 18.0, 0.0, 90),
+    City("الكويت", 29.3759, 47.9774, 18.0, 17.5),
+    City("المنامة", 26.2285, 50.5860, 18.0, 17.0),
+    City("مسقط", 23.5880, 58.3829, 18.0, 18.0),
+    City("عمّان", 31.9454, 35.9284, 18.0, 18.0),
+    City("القدس", 31.7683, 35.2137, 18.0, 18.0),
+    City("دمشق", 33.5138, 36.2765, 18.0, 18.0),
+    City("بيروت", 33.8938, 35.5018, 18.0, 18.0),
+    City("بغداد", 33.3152, 44.3661, 18.0, 18.0),
+    City("تونس", 36.8065, 10.1815, 18.0, 18.0),
+    City("الجزائر", 36.7538, 3.0588, 18.0, 17.0),
+    City("الرباط", 34.0209, -6.8416, 18.0, 17.0),
+    City("إسطنبول", 41.0082, 28.9784, 18.0, 17.0)
 )
 
 fun prefs(c: Context) = c.getSharedPreferences("hisn", Context.MODE_PRIVATE)
@@ -52,22 +53,58 @@ fun prefs(c: Context) = c.getSharedPreferences("hisn", Context.MODE_PRIVATE)
 fun savedCity(c: Context): City =
     cities.firstOrNull { it.name == prefs(c).getString("city", "") } ?: cities[0]
 
+private fun rad(d: Double) = Math.toRadians(d)
+private fun deg(r: Double) = Math.toDegrees(r)
+
 fun prayersFor(city: City, date: Date): List<PrayerItem> {
     val cal = Calendar.getInstance()
     cal.time = date
-    val comps = DateComponents(
-        cal.get(Calendar.YEAR),
-        cal.get(Calendar.MONTH) + 1,
-        cal.get(Calendar.DAY_OF_MONTH)
-    )
-    val params = CalculationMethod.valueOf(city.method).parameters
-    val pt = PrayerTimes(Coordinates(city.lat, city.lon), comps, params)
+    val y = cal.get(Calendar.YEAR)
+    val m = cal.get(Calendar.MONTH) + 1
+    val d = cal.get(Calendar.DAY_OF_MONTH)
+
+    val a = (14 - m) / 12
+    val yy = y + 4800 - a
+    val mm = m + 12 * a - 3
+    val jdn = d + (153 * mm + 2) / 5 + 365 * yy + yy / 4 - yy / 100 + yy / 400 - 32045
+    val n = jdn - 2451545.0 - 0.5 + 0.0008
+
+    val g = (357.5291 + 0.98560028 * n) % 360
+    val q = (280.459 + 0.98564736 * n) % 360
+    val lambda = q + 1.915 * sin(rad(g)) + 0.020 * sin(rad(2 * g))
+    val eps = 23.439 - 0.00000036 * n
+    val decl = asin(sin(rad(eps)) * sin(rad(lambda)))
+    val ra = deg(atan2(cos(rad(eps)) * sin(rad(lambda)), cos(rad(lambda)))) / 15.0
+    val eqt = q / 15.0 - ((ra % 24) + 24) % 24
+    val eqtFix = if (eqt > 12) eqt - 24 else if (eqt < -12) eqt + 24 else eqt
+
+    val noon = 12 - city.lon / 15.0 - eqtFix
+    val latR = rad(city.lat)
+
+    fun hourAngle(angle: Double): Double {
+        val v = (sin(rad(-angle)) - sin(latR) * sin(decl)) / (cos(latR) * cos(decl))
+        return deg(acos(v.coerceIn(-1.0, 1.0))) / 15.0
+    }
+
+    val sunset = noon + hourAngle(0.833)
+    val fajr = noon - hourAngle(city.fajr)
+    val asrAlt = deg(atan(1.0 / (1.0 + tan(abs(latR - decl)))))
+    val asr = noon + hourAngle(-asrAlt)
+    val isha = if (city.ishaMin > 0) sunset + city.ishaMin / 60.0 else noon + hourAngle(city.isha)
+
+    val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+    utc.clear()
+    utc.set(y, m - 1, d, 0, 0, 0)
+    val base = utc.timeInMillis
+
+    fun toDate(h: Double) = Date(base + (h * 3600000.0).toLong())
+
     return listOf(
-        PrayerItem("الفجر", pt.fajr),
-        PrayerItem("الظهر", pt.dhuhr),
-        PrayerItem("العصر", pt.asr),
-        PrayerItem("المغرب", pt.maghrib),
-        PrayerItem("العشاء", pt.isha)
+        PrayerItem("الفجر", toDate(fajr)),
+        PrayerItem("الظهر", toDate(noon + 0.0333)),
+        PrayerItem("العصر", toDate(asr)),
+        PrayerItem("المغرب", toDate(sunset + 0.0333)),
+        PrayerItem("العشاء", toDate(isha))
     )
 }
 
