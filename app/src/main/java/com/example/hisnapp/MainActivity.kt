@@ -9,20 +9,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        MobileAds.initialize(this)
         scheduleAdhan(this)
         setContent {
             MaterialTheme {
                 var screen by remember { mutableStateOf("home") }
-                when (screen) {
-                    "morning" -> AzkarScreen("أذكار الصباح", morningAzkar) { screen = "home" }
-                    "evening" -> AzkarScreen("أذكار المساء", eveningAzkar) { screen = "home" }
-                    "dua" -> AzkarScreen("أدعية مختارة", duaList) { screen = "home" }
-                    "prayer" -> PrayerScreen { screen = "home" }
-                    else -> HomeScreen { screen = it }
+                Column(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f)) {
+                        when (screen) {
+                            "morning" -> AzkarScreen("أذكار الصباح", morningAzkar) { screen = "home" }
+                            "evening" -> AzkarScreen("أذكار المساء", eveningAzkar) { screen = "home" }
+                            "dua" -> AzkarScreen("أدعية مختارة", duaList) { screen = "home" }
+                            "prayer" -> PrayerScreen { screen = "home" }
+                            else -> HomeScreen { screen = it }
+                        }
+                    }
+                    AdBanner()
                 }
             }
         }
