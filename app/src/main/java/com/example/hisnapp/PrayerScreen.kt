@@ -5,6 +5,8 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +37,11 @@ fun PrayerScreen(onBack: () -> Unit) {
         }
     ) { padding ->
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp),
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box {
@@ -89,7 +95,17 @@ fun PrayerScreen(onBack: () -> Unit) {
                 )
             }
 
-            // مكان إعلان AdMob لاحقاً
+            OutlinedButton(
+                onClick = {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    showAdhanNotification(context, "تجربة")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("تجربة الأذان الآن")
+            }
         }
     }
 }
