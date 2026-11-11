@@ -1,12 +1,15 @@
 package com.example.hisnapp
 
+import android.app.Activity
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import java.util.Calendar
 import java.util.Date
@@ -116,30 +119,59 @@ private fun alarmIntent(context: Context, name: String): PendingIntent {
     )
 }
 
+// يفتح صفحة إذن المنبّهات الدقيقة مرة واحدة فقط
+private fun askExactAlarm(context: Context) {
+    if (Build.VERSION.SDK_INT < 31 || context !is Activity) return
+    if (prefs(context).getBoolean("asked_exact", false)) return
+    prefs(context).edit().putBoolean("asked_exact", true).apply()
+    try {
+        context.startActivity(
+            Intent(
+                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                Uri.parse("package:" + context.packageName)
+            )
+        )
+    } catch (e: Exception) {
+    }
+}
+
 fun scheduleAdhan(context: Context) {
-    val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    try {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    if (!prefs(context).getBoolean("adhan", false)) {
-        am.cancel(alarmIntent(context, ""))
-        return
+        if (!prefs(context).getBoolean("adhan", false)) {
+            am.cancel(alarmIntent(context, ""))
+            return
+        }
+
+        val city = savedCity(context)
+        val now = System.currentTimeMillis()
+        val upcoming = mutableListOf<PrayerItem>()
+        for (day in 0..1) {
+            upcoming += prayersFor(city, Date(now + day * 86400000L))
+        }
+        val next = upcoming.filter { it.time.time > now + 1000 }
+            .minByOrNull { it.time.time } ?: return
+
+        val canExact = Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
+        if (canExact) {
+            val showIntent = PendingIntent.getActivity(
+                context, 0, Intent(context, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE
+            )
+            am.setAlarmClock(
+                AlarmManager.AlarmClockInfo(next.time.time, showIntent),
+                alarmIntent(context, next.name)
+            )
+        } else {
+            am.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, next.time.time, alarmIntent(context, next.name)
+            )
+            askExactAlarm(context)
+        }
+    } catch (e: Exception) {
+        // لا نوقف التطبيق إن فشلت الجدولة
     }
-
-    val city = savedCity(context)
-    val now = System.currentTimeMillis()
-    val upcoming = mutableListOf<PrayerItem>()
-    for (day in 0..1) {
-        upcoming += prayersFor(city, Date(now + day * 86400000L))
-    }
-    val next = upcoming.filter { it.time.time > now + 1000 }.minByOrNull { it.time.time } ?: return
-
-    val showIntent = PendingIntent.getActivity(
-        context, 0, Intent(context, MainActivity::class.java),
-        PendingIntent.FLAG_IMMUTABLE
-    )
-    am.setAlarmClock(
-        AlarmManager.AlarmClockInfo(next.time.time, showIntent),
-        alarmIntent(context, next.name)
-    )
 }
 
 fun showAdhanNotification(context: Context, name: String) {
